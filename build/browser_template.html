@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Calculator Accuracy Study: Trade Browser</title>
+<style>
+:root { --bg: #ffffff; --fg: #1d232b; --muted: #5b6673; --line: #e2e6eb; --card: #f7f9fb; --accent: #2f5d8a; --yes: #1d7a3b; --no: #b42318; --chip: #edf0f3; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #14171b; --fg: #e6e9ed; --muted: #9ba5b1; --line: #2b313a; --card: #1b1f25; --accent: #9dbfe2; --yes: #63c78b; --no: #f08a80; --chip: #242a32; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 980px; margin: 0 auto; padding: 24px 16px 72px; }
+a { color: var(--accent); }
+h1 { font-size: 1.55rem; line-height: 1.25; margin: 0 0 10px; }
+h2 { font-size: 1.15rem; margin: 28px 0 8px; }
+p { margin: 8px 0; }
+.disclosure { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.muted { color: var(--muted); }
+.small { font-size: 0.86rem; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; font-size: 0.86rem; color: var(--muted); }
+td.num, th.num { text-align: right; white-space: nowrap; }
+details > summary { cursor: pointer; color: var(--accent); }
+.tabs { display: flex; gap: 8px; margin: 28px 0 12px; border-bottom: 1px solid var(--line); }
+.tabs button { font: inherit; background: none; border: 0; border-bottom: 3px solid transparent; padding: 8px 4px; color: var(--muted); cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 8px 0; }
+.filters input[type=search], .filters select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+.filters input[type=search] { flex: 1 1 220px; min-width: 0; }
+.card { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 12px 0; background: var(--card); }
+.card header { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 0.86rem; color: var(--muted); }
+.chip { background: var(--chip); border-radius: 999px; padding: 1px 8px; color: var(--fg); }
+.sides { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin: 8px 0; }
+.sides .lbl { display: block; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.crowd { margin: 6px 0 8px; }
+.ok { color: var(--yes); font-weight: 700; }
+.miss { color: var(--no); font-weight: 700; }
+.votes { margin: 4px 0 0 0; padding-left: 18px; }
+.shots { margin-top: 8px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 10px; }
+figure { margin: 0; }
+figure img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+figcaption { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+.note { font-size: 0.86rem; color: var(--muted); }
+footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 0.86rem; color: var(--muted); }
+@media (max-width: 560px) { .sides { grid-template-columns: 1fr; } th, td { padding: 5px 4px; } body { font-size: 14px; } }
+</style>
+</head>
+<body>
+<main>
+<h1>Dynasty trade calculator accuracy study: every trade and every screenshot</h1>
+<p class="disclosure"><strong>Disclosure:</strong> prepared by Elliot Pollaro, who runs Dynasty Dealer, one of the four calculators tested. The method was registered on OSF before any trade was entered, and the results were published whatever they showed.</p>
+<p>Registered plan: <a href="https://doi.org/10.17605/OSF.IO/TYNQ7">doi.org/10.17605/OSF.IO/TYNQ7</a> · Data and code: <a href="https://doi.org/10.17605/OSF.IO/8UG93">doi.org/10.17605/OSF.IO/8UG93</a></p>
+
+<h2>Result</h2>
+<p id="winner-line"></p>
+<div class="table-wrap"><table id="summary"></table></div>
+<p class="note">Balanced accuracy is the average of two shares: how often a calculator picked the crowd's winner, and how often it called the crowd's "about even" trades even. The 95% intervals come from 10,000 bootstrap resamples.</p>
+<details>
+<summary>How the study worked</summary>
+<ul>
+<li><strong>Trades:</strong> 103 r/DynastyFFTradeAdvice threads (12-team Superflex, posted Sep 30 to Oct 27, 2026) with a clear crowd verdict.</li>
+<li><strong>Crowd verdict:</strong> one vote per commenter, through their top-scored comment that takes a side. A "lean" counts half for that side and half for even. A side wins with at least 70% of the directional votes and 2 backers. A trade is "about even" when at least half the weight says even. The poster's comments and comments that quote a calculator don't vote.</li>
+<li><strong>Calculators:</strong> every trade was entered into KeepTradeCut, FantasyCalc and Dynasty Daddy on Oct 30, 2026, with a screenshot of each reading. Dynasty Dealer's numbers come from its engine, run on that day's frozen values. The next day all 131 trades were also entered on Dynasty Dealer's live site, with screenshots, and the engine matched all 131.</li>
+<li><strong>Scoring:</strong> one rule for all four. Totals within 10% are "even"; otherwise the bigger side wins.</li>
+<li><strong>Safeguards:</strong> the verdicts were locked before any trade was entered; the calculators stayed coded until the analysis ran; every screenshot was re-read blind; an independent second implementation of the analysis matched exactly.</li>
+</ul>
+</details>
+
+<div class="tabs" role="tablist">
+<button role="tab" id="tab-trades" aria-selected="true" aria-controls="view-trades">Reddit trades</button>
+<button role="tab" id="tab-fa" aria-selected="false" aria-controls="view-fa">Free-agent tests</button>
+</div>
+
+<section id="view-trades" role="tabpanel" aria-labelledby="tab-trades">
+<div class="filters">
+<input type="search" id="q" placeholder="Search a player or pick" aria-label="Search a player or pick">
+<select id="bucket" aria-label="Trade shape"><option value="">All trade shapes</option></select>
+<select id="crowd" aria-label="Crowd verdict"><option value="">Any crowd verdict</option><option value="A">Crowd: Team A</option><option value="B">Crowd: Team B</option><option value="even">Crowd: about even</option></select>
+<select id="missed" aria-label="Calculator misses"><option value="">Any result</option></select>
+<label><input type="checkbox" id="split"> Calculators disagree</label>
+</div>
+<p class="count muted" id="count"></p>
+<p class="note">A call of <strong>Even</strong> means the totals are within 10%. <span class="ok">✓</span> means the call matches the crowd's verdict.</p>
+<div id="trade-list"></div>
+</section>
+
+<section id="view-fa" role="tabpanel" aria-labelledby="tab-fa" hidden>
+<p>Free agents cost nothing, so these tests have a right answer. Each pile used the most-rostered free agents, each rostered in under 10% of leagues.</p>
+<ul>
+<li><strong>Test A:</strong> a stud against 2, 4, 6 or 8 free agents. It passes if the pile doesn't outvalue the stud.</li>
+<li><strong>Test B:</strong> one free agent (Rasheen Ali) added to a 1-for-1. It passes if the margin moves by no more than 1.5 times his own value, or by 1% of the bigger side if the site values him at 0.</li>
+</ul>
+<div id="fa-list"></div>
+</section>
+
+<footer>
+<p>Built from the published files by <code>build_browser.mjs</code>: <code>calc-accuracy-2026-10-30.zip</code> (SHA-256 ba6c5b01…) and <code>dd-live-2026-10-31.zip</code> (SHA-256 ba0765a5…), both at <a href="https://doi.org/10.17605/OSF.IO/8UG93">doi.org/10.17605/OSF.IO/8UG93</a>. The build fails unless this page's calls reproduce the published results exactly and every thread's counted votes rebuild to the locked verdict file.</p>
+<p>Reddit threads and comments are linked by ID; no usernames are shown. Screenshots show the calculators' websites on Oct 30–31, 2026; content from KeepTradeCut, FantasyCalc and Dynasty Daddy belongs to those sites. Code: MIT. Data: CC BY-NC 4.0.</p>
+</footer>
+</main>
+
+<script>
+const DATA = /*STUDY_DATA*/null;
+const N = DATA.names;
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = (n) => Number(n).toLocaleString('en-US');
+const pct = (x) => `${(x * 100).toFixed(1)}%`;
+const CALL = { A: 'Team A', B: 'Team B', even: 'Even' };
+const CROWD = { A: 'Team A wins', B: 'Team B wins', even: 'About even' };
+const POS = { A: 'Team A', lean_A: 'leans Team A', even: 'even', lean_B: 'leans Team B', B: 'Team B' };
+const when = (iso) => { const d = new Date(iso); return `${d.toLocaleString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}, ${d.toISOString().slice(11, 16)} UTC`; };
+const day = (s) => new Date(`${s}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+
+document.getElementById('winner-line').textContent = `No calculator was significantly better than all three others (registered winner rule: ${DATA.winner}).`;
+document.getElementById('summary').innerHTML = `<thead><tr><th>Calculator</th><th class="num">Balanced accuracy (95% CI)</th><th class="num">Picked the winner (${DATA.summary[0].nWin} trades)</th><th class="num">Even called even (${DATA.summary[0].nEven})</th><th class="num">Free-agent tests A / B</th></tr></thead><tbody>${DATA.summary.map((s) => `<tr><td>${esc(s.name)}</td><td class="num">${pct(s.accuracy)} (${(s.ci95[0] * 100).toFixed(1)}–${(s.ci95[1] * 100).toFixed(1)}%)</td><td class="num">${pct(s.winHit)}</td><td class="num">${Math.round(s.evenHit * s.nEven)} of ${s.nEven}</td><td class="num">${esc(s.faA)} / ${esc(s.faB)}</td></tr>`).join('')}</tbody>`;
+
+const mark = (ok) => (ok === undefined ? '' : ok ? '<span class="ok" title="Matches the crowd">✓</span>' : '<span class="miss" title="Differs from the crowd">✗</span>');
+const row = (code, c, extra = '') => (c.status && c.status !== 'ok'
+  ? `<tr><td>${esc(N[code])}</td><td class="num" colspan="3">${esc(c.status === 'not_listed' ? 'an asset is not listed' : c.status)}</td><td></td></tr>`
+  : `<tr><td>${esc(N[code])}${extra}</td><td class="num">${num(c.a)}</td><td class="num">${num(c.b)}</td><td>${CALL[c.call]}</td><td>${mark(c.ok)}</td></tr>`);
+const fig = (src, cap) => `<figure><a href="${esc(src)}" target="_blank" rel="noopener"><img src="${esc(src)}" loading="lazy" alt="${esc(cap)}"></a><figcaption>${cap}</figcaption></figure>`;
+const shotFig = (code, c, label) => (c && c.shot ? fig(c.shot, `${esc(label || N[code])}: ${num(c.a)} vs ${num(c.b)}. ${when(c.at)}${c.text ? ` · “${esc(c.text)}”` : ''}`) : '');
+const ddFigs = (t) => [
+  ...t.dd30.map((x) => fig(x.shot, x.first
+    ? `Dynasty Dealer, live site, Oct 30 check, first attempt: ${num(x.a)} vs ${num(x.b)}. Re-entered because it was ${esc(x.first)}. ${when(x.at)}`
+    : `Dynasty Dealer, live site, Oct 30 check: ${num(x.a)} vs ${num(x.b)} (${esc(x.tep)}). ${when(x.at)}`)),
+  t.dd31 ? fig(t.dd31.shot, `Dynasty Dealer, live site, Oct 31: ${num(t.dd31.a)} vs ${num(t.dd31.b)}. Values had updated overnight, so these differ slightly from the study's Oct 30 numbers. ${when(t.dd31.at)}`) : '',
+].join('');
+const ddNote = '<p class="note">The study\'s Dynasty Dealer numbers come from its engine, run on Oct 30\'s frozen values. On Oct 31 every trade was also entered on its live site, and the engine matched all 131 exactly.</p>';
+
+function tradeCard(t) {
+  const calcs = DATA.main.map((code) => row(code, t.calc[code], code === 'DD' ? ' <span class="muted small">(engine)</span>' : '')).join('');
+  const votes = t.votes.map((v) => `<li>Commenter ${esc(v.c.slice(1))}: ${POS[v.p]} · <a href="https://www.reddit.com/comments/${esc(t.id)}/_/${esc(v.id)}/" target="_blank" rel="noopener">comment</a></li>`).join('');
+  const others = ['KTC_CROWD_TRADES', 'KTC_TRADE'].map((code) => shotFig(code, t.more[code])).join('');
+  return `<article class="card">
+<header><span class="chip">${esc(t.bucket)}</span>${t.tep ? '<span class="chip">TE premium</span>' : ''}<span>${day(t.date)}</span><a href="${esc(t.url)}" target="_blank" rel="noopener">Reddit thread ${esc(t.id)} ↗</a></header>
+<div class="sides"><div><span class="lbl">Team A gets</span>${esc(t.a)}</div><div><span class="lbl">Team B gets</span>${esc(t.b)}</div></div>
+<p class="crowd"><strong>Crowd: ${CROWD[t.crowd]}</strong> <span class="muted">· ${t.voters} voters (Team A ${t.w.A}, Team B ${t.w.B}, even ${t.w.even})</span></p>
+<details><summary>The votes that counted</summary><ul class="votes">${votes}</ul></details>
+<div class="table-wrap"><table><thead><tr><th>Calculator</th><th class="num">Team A</th><th class="num">Team B</th><th>Call</th><th></th></tr></thead><tbody>${calcs}</tbody></table></div>
+<details class="shots"><summary>Screenshots</summary><div class="grid">${shotFig('KTC', t.calc.KTC, 'KeepTradeCut (Crowdsourced)')}${shotFig('FC', t.calc.FC)}${shotFig('DDADDY', t.calc.DDADDY)}${ddFigs(t)}</div>${ddNote}
+<details><summary>KeepTradeCut's other value sources (secondary)</summary><div class="grid">${others}</div></details></details>
+</article>`;
+}
+
+const FA_LABEL = (f) => {
+  if (f.test === 'A') { const pos = f.id.split('-')[2]; return `Test A · ${pos} stud vs ${f.pile} free agents`; }
+  return `Test B · pair ${f.pair} · ${f.variant === 'base' ? 'base 1-for-1' : `Rasheen Ali added to Team ${f.variant === 'toA' ? 'A' : 'B'}`}`;
+};
+function faResult(f, c) {
+  if (c.status && c.status !== 'ok') return esc(c.status);
+  if (f.test === 'A') return c.pass === undefined ? '' : c.pass ? '<span class="ok">pass</span>' : '<span class="miss">fail</span> (pile ahead)';
+  if (f.variant === 'base') return '<span class="muted">reference</span>';
+  if (c.pass === undefined) return '';
+  return `${c.pass ? '<span class="ok">pass</span>' : '<span class="miss">fail</span>'} <span class="muted small">moved ${num(Math.abs(c.delta))}${c.wrongWay ? ' toward the other side' : ''}; allowed ${Number(c.allowed).toLocaleString('en-US', { maximumFractionDigits: 1 })}</span>`;
+}
+function faCard(f) {
+  const rows = DATA.main.map((code) => { const c = f.calc[code]; return `<tr><td>${esc(N[code])}${code === 'DD' ? ' <span class="muted small">(engine)</span>' : ''}</td><td class="num">${c.a === undefined ? '' : num(c.a)}</td><td class="num">${c.b === undefined ? '' : num(c.b)}</td><td>${faResult(f, c)}</td></tr>`; }).join('');
+  return `<article class="card"><header><span class="chip">${esc(FA_LABEL(f))}</span><span>${esc(f.id)}</span></header>
+<div class="sides"><div><span class="lbl">Team A gets</span>${esc(f.a)}</div><div><span class="lbl">Team B gets</span>${esc(f.b)}</div></div>
+<div class="table-wrap"><table><thead><tr><th>Calculator</th><th class="num">Team A</th><th class="num">Team B</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div>
+<details class="shots"><summary>Screenshots</summary><div class="grid">${shotFig('KTC', f.calc.KTC, 'KeepTradeCut (Crowdsourced)')}${shotFig('FC', f.calc.FC)}${shotFig('DDADDY', f.calc.DDADDY)}${ddFigs(f)}</div>${ddNote}</details></article>`;
+}
+
+const $ = (id) => document.getElementById(id);
+[...new Set(DATA.trades.map((t) => t.bucket))].forEach((b) => $('bucket').insertAdjacentHTML('beforeend', `<option value="${esc(b)}">${esc(b)}</option>`));
+DATA.main.forEach((c) => $('missed').insertAdjacentHTML('beforeend', `<option value="${c}">${esc(N[c])} differs from the crowd</option>`));
+function render() {
+  const q = $('q').value.trim().toLowerCase();
+  const list = DATA.trades.filter((t) => (!q || `${t.a} ${t.b}`.toLowerCase().includes(q))
+    && (!$('bucket').value || t.bucket === $('bucket').value)
+    && (!$('crowd').value || t.crowd === $('crowd').value)
+    && (!$('missed').value || t.calc[$('missed').value].ok === false)
+    && (!$('split').checked || new Set(DATA.main.map((c) => t.calc[c].call)).size > 1));
+  $('count').textContent = `Showing ${list.length} of ${DATA.trades.length} trades`;
+  $('trade-list').innerHTML = list.map(tradeCard).join('');
+}
+['q', 'bucket', 'crowd', 'missed', 'split'].forEach((id) => $(id).addEventListener('input', render));
+render();
+$('fa-list').innerHTML = DATA.fa.map(faCard).join('');
+for (const [tab, view] of [['tab-trades', 'view-trades'], ['tab-fa', 'view-fa']]) {
+  $(tab).addEventListener('click', () => {
+    for (const [t, v] of [['tab-trades', 'view-trades'], ['tab-fa', 'view-fa']]) { $(t).setAttribute('aria-selected', String(t === tab)); $(v).hidden = v !== view; }
+  });
+}
+</script>
+</body>
+</html>
