@@ -66,7 +66,7 @@ footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line);
 <ul>
 <li><strong>Trades:</strong> 103 r/DynastyFFTradeAdvice threads (12-team Superflex, posted Sep 30 to Oct 27, 2026) with a clear crowd verdict.</li>
 <li><strong>Crowd verdict:</strong> one vote per commenter, through their top-scored comment that takes a side. A "lean" counts half for that side and half for even. A side wins with at least 70% of the directional votes and 2 backers. A trade is "about even" when at least half the weight says even. The poster's comments and comments that quote a calculator don't vote.</li>
-<li><strong>Calculators:</strong> every trade was entered into KeepTradeCut, FantasyCalc and Dynasty Daddy on Oct 30, 2026, with a screenshot of each reading. Dynasty Dealer's numbers come from its engine, run on that day's frozen values. The next day all 131 trades were also entered on Dynasty Dealer's live site, with screenshots, and the engine matched all 131.</li>
+<li><strong>Calculators:</strong> every trade was entered into KeepTradeCut, FantasyCalc and Dynasty Daddy on Oct 30, 2026, with a screenshot of each reading. Dynasty Dealer's numbers come from its engine, run on that day's frozen values. The next day all 131 trades were entered on Dynasty Dealer's live site twice, the second time with screenshots of the whole trade, and the engine matched all 131 both times.</li>
 <li><strong>Scoring:</strong> one rule for all four. Totals within 10% are "even"; otherwise the bigger side wins.</li>
 <li><strong>Safeguards:</strong> the verdicts were locked before any trade was entered; the calculators stayed coded until the analysis ran; every screenshot was re-read blind; an independent second implementation of the analysis matched exactly.</li>
 </ul>
@@ -127,12 +127,14 @@ const row = (code, c, extra = '') => (c.status && c.status !== 'ok'
 const fig = (src, cap) => `<figure><a href="${esc(src)}" target="_blank" rel="noopener"><img src="${esc(src)}" loading="lazy" alt="${esc(cap)}"></a><figcaption>${cap}</figcaption></figure>`;
 const shotFig = (code, c, label) => (c && c.shot ? fig(c.shot, `${esc(label || N[code])}: ${num(c.a)} vs ${num(c.b)}. ${when(c.at)}${c.text ? ` · “${esc(c.text)}”` : ''}`) : '');
 const ddFigs = (t) => [
+  ...(t.dd31b ? t.dd31b.shots.map((s, i) => fig(s, `Dynasty Dealer, live site, Oct 31, whole trade${t.dd31b.shots.length > 1 ? ` (${i + 1} of ${t.dd31b.shots.length})` : ''}: ${num(t.dd31b.a)} vs ${num(t.dd31b.b)}. Values had updated since Oct 30, so these differ slightly from the study's numbers. ${when(t.dd31b.at)}`)) : []),
   ...t.dd30.map((x) => fig(x.shot, x.first
     ? `Dynasty Dealer, live site, Oct 30 check, first attempt: ${num(x.a)} vs ${num(x.b)}. Re-entered because it was ${esc(x.first)}. ${when(x.at)}`
     : `Dynasty Dealer, live site, Oct 30 check: ${num(x.a)} vs ${num(x.b)} (${esc(x.tep)}). ${when(x.at)}`)),
-  t.dd31 ? fig(t.dd31.shot, `Dynasty Dealer, live site, Oct 31: ${num(t.dd31.a)} vs ${num(t.dd31.b)}. Values had updated overnight, so these differ slightly from the study's Oct 30 numbers. ${when(t.dd31.at)}`) : '',
+  !t.dd31b && t.dd31 ? fig(t.dd31.shot, `Dynasty Dealer, live site, Oct 31: ${num(t.dd31.a)} vs ${num(t.dd31.b)}. Values had updated overnight, so these differ slightly from the study's Oct 30 numbers. ${when(t.dd31.at)}`) : '',
 ].join('');
-const ddNote = '<p class="note">The study\'s Dynasty Dealer numbers come from its engine, run on Oct 30\'s frozen values. On Oct 31 every trade was also entered on its live site, and the engine matched all 131 exactly.</p>';
+const ddFirstPass = (t) => (t.dd31b && t.dd31 ? `<details><summary>Dynasty Dealer's first Oct 31 pass (totals only)</summary><div class="grid">${fig(t.dd31.shot, `Dynasty Dealer, live site, Oct 31 first pass: ${num(t.dd31.a)} vs ${num(t.dd31.b)}. ${when(t.dd31.at)}`)}</div></details>` : '');
+const ddNote = '<p class="note">The study\'s Dynasty Dealer numbers come from its engine, run on Oct 30\'s frozen values. On Oct 31 every trade was entered on its live site twice, the second time with screenshots of the whole trade, and the engine matched all 131 both times.</p>';
 
 function tradeCard(t) {
   const calcs = DATA.main.map((code) => row(code, t.calc[code], code === 'DD' ? ' <span class="muted small">(engine)</span>' : '')).join('');
@@ -144,7 +146,7 @@ function tradeCard(t) {
 <p class="crowd"><strong>Crowd: ${CROWD[t.crowd]}</strong> <span class="muted">· ${t.voters} voters (Team A ${t.w.A}, Team B ${t.w.B}, even ${t.w.even})</span></p>
 <details><summary>The votes that counted</summary><ul class="votes">${votes}</ul></details>
 <div class="table-wrap"><table><thead><tr><th>Calculator</th><th class="num">Team A</th><th class="num">Team B</th><th>Call</th><th></th></tr></thead><tbody>${calcs}</tbody></table></div>
-<details class="shots"><summary>Screenshots</summary><div class="grid">${shotFig('KTC', t.calc.KTC, 'KeepTradeCut (Crowdsourced)')}${shotFig('FC', t.calc.FC)}${shotFig('DDADDY', t.calc.DDADDY)}${ddFigs(t)}</div>${ddNote}
+<details class="shots"><summary>Screenshots</summary><div class="grid">${shotFig('KTC', t.calc.KTC, 'KeepTradeCut (Crowdsourced)')}${shotFig('FC', t.calc.FC)}${shotFig('DDADDY', t.calc.DDADDY)}${ddFigs(t)}</div>${ddNote}${ddFirstPass(t)}
 <details><summary>KeepTradeCut's other value sources (secondary)</summary><div class="grid">${others}</div></details></details>
 </article>`;
 }
@@ -165,7 +167,7 @@ function faCard(f) {
   return `<article class="card"><header><span class="chip">${esc(FA_LABEL(f))}</span><span>${esc(f.id)}</span></header>
 <div class="sides"><div><span class="lbl">Team A gets</span>${esc(f.a)}</div><div><span class="lbl">Team B gets</span>${esc(f.b)}</div></div>
 <div class="table-wrap"><table><thead><tr><th>Calculator</th><th class="num">Team A</th><th class="num">Team B</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div>
-<details class="shots"><summary>Screenshots</summary><div class="grid">${shotFig('KTC', f.calc.KTC, 'KeepTradeCut (Crowdsourced)')}${shotFig('FC', f.calc.FC)}${shotFig('DDADDY', f.calc.DDADDY)}${ddFigs(f)}</div>${ddNote}</details></article>`;
+<details class="shots"><summary>Screenshots</summary><div class="grid">${shotFig('KTC', f.calc.KTC, 'KeepTradeCut (Crowdsourced)')}${shotFig('FC', f.calc.FC)}${shotFig('DDADDY', f.calc.DDADDY)}${ddFigs(f)}</div>${ddNote}${ddFirstPass(f)}</details></article>`;
 }
 
 const $ = (id) => document.getElementById(id);

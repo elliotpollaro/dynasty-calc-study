@@ -4,6 +4,7 @@
 // published leaderboard and every thread's vote weights exactly.
 //
 // Usage: node research/calc-accuracy/build_browser.mjs --study <unzipped calc-accuracy-2026-10-30> --live <dd-live-2026-10-31 dir>
+//          [--live2 <its pass2 dir: full-trade screenshots>]
 //          --out <site dir> [--template <browser_template.html>]
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -17,6 +18,7 @@ const flag = (name, dflt) => { const i = args.indexOf(name); return i >= 0 ? arg
 const fail = (msg) => { console.error(`BUILD FAILED: ${msg}`); process.exit(1); };
 const STUDY = flag('--study');
 const LIVE = flag('--live');
+const LIVE2 = flag('--live2');
 const OUT = flag('--out');
 if (!STUDY || !LIVE || !OUT) fail('usage: build_browser.mjs --study <dir> --live <dir> --out <dir>');
 const TEMPLATE = flag('--template', join(HERE, 'browser_template.html'));
@@ -45,6 +47,7 @@ const REENTERED = {
   '1wv9xhm': 'a tight end added with TE+ already off kept his TE-premium value (a live-site bug, since fixed)',
 };
 const ddLive31 = new Map(readCsv(LIVE, 'live.csv').map((r) => [r.thread_id, r]));
+const ddLive31b = LIVE2 ? new Map(readCsv(LIVE2, 'live.csv').map((r) => [r.thread_id, r])) : new Map();
 const comments = readCsv(STUDY, 'comment_positions.csv').filter((c) => c.pass === 'pass1');
 
 // Every image the page shows is copied next to it, under the same relative path as in the published files.
@@ -53,7 +56,7 @@ const copyShot = (root, rel) => {
   if (!rel) return null;
   const src = join(root, rel);
   if (!existsSync(src)) fail(`missing screenshot ${src}`);
-  const out = root === LIVE ? `dd-live-2026-10-31/${rel}` : rel;
+  const out = root === LIVE ? `dd-live-2026-10-31/${rel}` : root === LIVE2 ? `dd-live-2026-10-31/pass2/${rel}` : rel;
   if (!copied.has(out)) { mkdirSync(dirname(join(OUT, out)), { recursive: true }); copyFileSync(src, join(OUT, out)); copied.add(out); }
   return out;
 };
@@ -78,6 +81,11 @@ const live30 = (id) => {
 const live31 = (id) => {
   const r = ddLive31.get(id);
   return r && r.status === 'ok' ? { a: Number(r.live_total_a), b: Number(r.live_total_b), at: r.captured_at, shot: copyShot(LIVE, r.screenshot) } : null;
+};
+// The second pass: the same trades entered again later that day, with screenshots of the whole trade.
+const live31b = (id) => {
+  const r = ddLive31b.get(id);
+  return r && r.status === 'ok' ? { a: Number(r.live_total_a), b: Number(r.live_total_b), at: r.captured_at, shots: [r.screenshot, r.screenshot2].filter(Boolean).map((x) => copyShot(LIVE2, x)) } : null;
 };
 
 // §3's vote rule, rebuilt from the published comment positions: one vote per commenter, through their
@@ -111,7 +119,7 @@ const trades = verdicts.map((v) => {
     crowd: v.verdict, voters: v.voters, w: v.weights, votes,
     calc: Object.fromEntries(MAIN.map((c) => [c, calcCell(reading.get(`${v.thread_id}|${c}`), v.verdict)])),
     more: Object.fromEntries(['KTC_CROWD_TRADES', 'KTC_TRADE'].map((c) => [c, calcCell(reading.get(`${v.thread_id}|${c}`), v.verdict)])),
-    dd30: live30(v.thread_id), dd31: live31(v.thread_id),
+    dd30: live30(v.thread_id), dd31: live31(v.thread_id), dd31b: live31b(v.thread_id),
   };
 });
 
@@ -133,7 +141,7 @@ const fa = faTrades.map((f) => {
     const row = faRows(NAMES[c], f.test === 'A' ? 'testA' : 'testB').get(f.thread_id);
     return [c, { ...cell, ...(row && { pass: row.pass, delta: row.delta, allowed: row.allowed, wrongWay: row.wrongWay, throwIn: row.throwInValue }) }];
   }));
-  return { id: f.thread_id, test: f.test, pile: f.pile, pair: f.pair, variant: f.variant, a: names(f.side_a), b: names(f.side_b), calc, dd30: live30(f.thread_id), dd31: live31(f.thread_id) };
+  return { id: f.thread_id, test: f.test, pile: f.pile, pair: f.pair, variant: f.variant, a: names(f.side_a), b: names(f.side_b), calc, dd30: live30(f.thread_id), dd31: live31(f.thread_id), dd31b: live31b(f.thread_id) };
 });
 
 const summary = MAIN.map((c) => {

@@ -20,10 +20,10 @@ The build fails unless:
 - the page's calls reproduce the published results exactly; and
 - every thread's counted votes rebuild to the locked verdict file.
 
-The build also needs `analysis_lib.mjs` and `lib.mjs` from the study's `code/` folder. To rebuild:
+The build also needs `analysis_lib.mjs` and `lib.mjs` from the study's `code/` folder. To rebuild (`--live2` adds the second Dynasty Dealer pass, whose screenshots show the whole trade):
 
 ```
-node build_browser.mjs --study <unzipped calc-accuracy-2026-10-30> --live <unzipped dd-live-2026-10-31> --out <site folder>
+node build_browser.mjs --study <unzipped calc-accuracy-2026-10-30> --live <unzipped dd-live-2026-10-31> --live2 <unzipped dd-live-2026-10-31-pass2> --out <site folder>
 ```
 
 ## License
